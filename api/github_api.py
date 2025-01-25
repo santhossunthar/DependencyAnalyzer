@@ -1,6 +1,5 @@
 import requests
 import base64
-import json
 
 class GitHubAPI:
     """Handles GitHub API requests."""
@@ -36,3 +35,14 @@ class GitHubAPI:
                 "url": f"https://github.com/{owner}/{repo}"
             }
         raise Exception(f"Failed to fetch repository metadata: {response.status_code}")
+    
+    def fetch_file_content(self, owner: str, repo: str, file_name: str) -> str:
+        """Fetches file content from a GitHub repository."""
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_name}"
+        response = requests.get(api_url, headers=self.headers)
+
+        if response.status_code == 200:
+            print(f"Successfully fetched {file_name} from {owner}/{repo}")
+            content_base64 = response.json().get("content", "")
+            return base64.b64decode(content_base64).decode("utf-8")
+        return ""

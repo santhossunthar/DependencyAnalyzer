@@ -1,7 +1,9 @@
 from api.github_api import GitHubAPI
 from utils.csv_writer import CSVWriter
 from services.repository_service import RepositoryService
+from services.dependency_service import DependencyService
 from dotenv import load_dotenv
+import csv
 import sys
 import os
 
@@ -36,3 +38,32 @@ if __name__ == "__main__":
             print(f"Repository information successfully written to {repository_metadata_csv}")
         except Exception as e:
             print(f"Error: {e}")
+    elif len(arguments) == 2 and arguments[1] == "-d":
+        repository_metadata_csv = "repository_metadata.csv"
+        dependency_csv = "dependencies.csv"
+        headers = [
+            "repo", 
+            "url",
+            "source_file", 
+            "name",
+            "operator", 
+            "version", 
+        ]
+        csv_writer = CSVWriter(dependency_csv, headers)
+        dependency_service = DependencyService(github_api, csv_writer)
+
+        # Read repository list from input CSV
+        try:
+            with open(repository_metadata_csv, mode="r", encoding="utf-8") as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    owner, repo = row.get("owner"), row.get("name")  
+                    url = row.get("url")
+
+                    if owner and repo:
+                        dependency_service.analyze_dependencies(owner, repo, url)
+            print(f"Dependency information successfully written to {dependency_csv}")
+        except Exception as e:
+            print(f"Error: {e}")
+
+        
