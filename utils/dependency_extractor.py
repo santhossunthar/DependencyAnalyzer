@@ -17,6 +17,7 @@ class DependencyExtractor:
                 if match:
                     name, operator, version = match.groups()
                     dependencies.append({
+                        "ecosystem": "PIP",
                         "name": name,
                         "operator": operator or "",
                         "version": version or "",
@@ -32,9 +33,19 @@ class DependencyExtractor:
             deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
             for dep, version in deps.items():
                 if isinstance(version, str):
-                    dependencies.append({"name": dep, "operator": "==", "version": version})
+                    dependencies.append({
+                        "ecosystem": "PIP",
+                        "name": dep, 
+                        "operator": "==", 
+                        "version": version
+                    })
                 elif isinstance(version, dict):
-                    dependencies.append({"name": dep, "operator": ">=", "version": version.get("min", "")})
+                    dependencies.append({
+                        "ecosystem": "PIP",
+                        "name": dep, 
+                        "operator": ">=", 
+                        "version": version.get("min", "")
+                    })
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -46,7 +57,12 @@ class DependencyExtractor:
         try:
             data = tomli.loads(content)
             for dep, version in data.get("packages", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -58,7 +74,12 @@ class DependencyExtractor:
         try:
             data = tomli.loads(content)
             for dep, version in data.get("packages", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -70,7 +91,12 @@ class DependencyExtractor:
         try:
             data = json.loads(content)
             for dep, info in data.get("_meta", {}).get("requires", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": info.get("version", "")})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": info.get("version", "")
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -82,7 +108,11 @@ class DependencyExtractor:
         for match in re.finditer(r"install_requires=\[(.*?)\]", content):
             for dep in match.group(1).split(","):
                 dep = dep.strip().strip("'").strip('"')
-                dependencies.append({"name": dep, "operator": "", "version": ""})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "", 
+                    "version": ""})
         return dependencies
     
     @staticmethod
@@ -92,7 +122,12 @@ class DependencyExtractor:
         for match in re.finditer(r"install_requires = (.*?)\n", content):
             for dep in match.group(1).split(","):
                 dep = dep.strip().strip("'").strip('"')
-                dependencies.append({"name": dep, "operator": "", "version": ""})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "", 
+                    "version": ""
+                })
         return dependencies
     
     @staticmethod
@@ -104,10 +139,20 @@ class DependencyExtractor:
             deps = data.get("dependencies", [])
             for dep in deps:
                 if isinstance(dep, str):
-                    dependencies.append({"name": dep, "operator": "", "version": ""})
+                    dependencies.append({
+                        "ecosystem": "PIP", 
+                        "name": dep, 
+                        "operator": "", 
+                        "version": ""
+                    })
                 elif isinstance(dep, dict):
                     for name, version in dep.items():
-                        dependencies.append({"name": name, "operator": "", "version": version})
+                        dependencies.append({
+                            "ecosystem": "PIP",
+                            "name": name, 
+                            "operator": "", 
+                            "version": version
+                        })
         except yaml.YAMLError:
             pass
         return dependencies
@@ -119,8 +164,35 @@ class DependencyExtractor:
         try:
             data = tomli.loads(content)
             deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
-            for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+
+            for dep, value in deps.items():
+                if isinstance(value, str):
+                    # Handle basic dependencies like 'django = "^4.2"'
+                    dependencies.append({
+                        "ecosystem": "PIP",
+                        "name": dep,
+                        "operator": "==",
+                        "version": value
+                    })
+                elif isinstance(value, dict):
+                    # Handle dependencies with extras or markers like 'django = {version = "^4.2", extras = ["bcrypt"]}'
+                    version = value.get("version", "")
+                    extras = value.get("extras", [])
+                    markers = value.get("markers", "")
+
+                    dependency = {
+                        "ecosystem": "PIP",
+                        "name": dep,
+                        "operator": "==",
+                        "version": version
+                    }
+
+                    if extras:
+                        dependency["extras"] = extras
+                    if markers:
+                        dependency["markers"] = markers
+
+                    dependencies.append(dependency)
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -133,7 +205,12 @@ class DependencyExtractor:
             data = json.loads(content)
             deps = data.get("dependencies", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "", "version": version})
+                dependencies.append({
+                    "ecosystem": "NPM", 
+                    "name": dep, 
+                    "operator": "", 
+                    "version": version
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -146,7 +223,12 @@ class DependencyExtractor:
             data = json.loads(content)
             deps = data.get("dependencies", {})
             for dep, info in deps.items():
-                dependencies.append({"name": dep, "operator": "", "version": info.get("version", "")})
+                dependencies.append({
+                    "ecosystem": "NPM", 
+                    "name": dep, 
+                    "operator": "", 
+                    "version": info.get("version", "")
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -156,10 +238,30 @@ class DependencyExtractor:
         """Parses a yarn.lock file content."""
         dependencies = []
         for line in content.splitlines():
-            parts = line.split("@")
-            if len(parts) >= 2:
-                name, version = parts[0], parts[1]
-                dependencies.append({"name": name, "operator": "", "version": version})
+            if '"' in line:
+                parts = line.split('"')
+                # Extract name and version
+                if len(parts) >= 3:
+                    name = parts[0].strip().split(",")[-1].strip()
+                    version = parts[1].strip()
+                    dependencies.append({
+                        "ecosystem": "NPM",
+                        "name": name,
+                        "operator": "^" if "^" in version else "",
+                        "version": version.lstrip("^"),
+                    })
+            elif "-/" in line and "#" in line:
+                parts = line.split("/")
+                if len(parts) > 2:
+                    name = "/".join(parts[:-1])
+                    version_part = parts[-1]
+                    version = version_part.split("#")[0]
+                    dependencies.append({
+                        "ecosystem": "NPM",
+                        "name": name,
+                        "operator": "",
+                        "version": version,
+                    })
         return dependencies
     
     @staticmethod
@@ -168,19 +270,43 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"require\(['\"](.+?)['\"]\)", content):
             name = match.group(1)
-            dependencies.append({"name": name, "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "NPM", 
+                "name": name, 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
     
     @staticmethod
     def parse_pnpm_lock_yaml(content: str) -> List[Dict]:
         """Parses a pnpm-lock.yaml file content."""
         dependencies = []
+
         try:
             data = yaml.safe_load(content)
-            for dep, info in data.get("packages", {}).items():
-                dependencies.append({"name": dep, "operator": "", "version": info.get("version", "")})
-        except yaml.YAMLError:
-            pass
+        except yaml.YAMLError as e:
+            print(f"Error loading YAML: {e}")
+            return dependencies
+
+        for dep, info in data.get("packages", {}).items():
+        # Check if 'version' exists in the package data
+            if isinstance(info, dict) and 'version' in info:
+                name = dep.lstrip('@')  # Remove '@' if present in the package name
+                version = info.get('version', "")
+                
+                # Split on '@' to ensure correct handling of dependencies in the correct format
+                operator = ""
+                if version.startswith("^"):
+                    operator = "^"
+                    version = version.lstrip("^")
+
+                dependencies.append({
+                    "ecosystem": "NPM",
+                    "name": name,
+                    "operator": operator,
+                    "version": version
+                })
         return dependencies
     
     @staticmethod
@@ -191,7 +317,12 @@ class DependencyExtractor:
             data = json.loads(content)
             deps = data.get("dependencies", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "", "version": version})
+                dependencies.append({
+                    "ecosystem": "NPM",
+                    "name": dep, 
+                    "operator": "", 
+                    "version": version
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -205,7 +336,12 @@ class DependencyExtractor:
             match = re.match(r"gem ['\"](.+?)['\"],\s*['\"](.+?)['\"]", line)
             if match:
                 name, version = match.groups()
-                dependencies.append({"name": name, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "RUBYGEMS",
+                    "name": name, 
+                    "operator": "==", 
+                    "version": version
+                })
         return dependencies
     
     @staticmethod
@@ -214,7 +350,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"    (.+?) \((.+?)\)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "RUBYGEMS",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -225,7 +366,12 @@ class DependencyExtractor:
             data = json.loads(content)
             deps = data.get("require", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "COMPOSER",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -240,7 +386,12 @@ class DependencyExtractor:
             for package in packages:
                 name = package.get("name", "")
                 version = package.get("version", "")
-                dependencies.append({"name": name, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "COMPOSER",
+                    "name": name, 
+                    "operator": "==", 
+                    "version": version
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -253,7 +404,12 @@ class DependencyExtractor:
         for dep in root.findall(".//dependency"):
             name = dep.findtext("artifactId")
             version = dep.findtext("version")
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
 
     @staticmethod
@@ -262,7 +418,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"^(.+)=(.+)$", content, re.MULTILINE):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "", "version": version})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": name, 
+                "operator": "", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -272,7 +433,12 @@ class DependencyExtractor:
         try:
             data = json.loads(content)
             for dep, info in data.get("dependencies", {}).items():
-                dependencies.append({"name": dep, "operator": "", "version": info.get("version", "")})
+                dependencies.append({
+                    "ecosystem": "MAVEN",
+                    "name": dep, 
+                    "operator": "", 
+                    "version": info.get("version", "")
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -283,7 +449,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"implementation ['\"](.*?):(.*?)['\"]", content):
             group, name = match.groups()
-            dependencies.append({"name": f"{group}:{name}", "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": f"{group}:{name}", 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
 
     @staticmethod
@@ -292,7 +463,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"ivy-module name=['\"](.*?)['\"]", content):
             name = match.group(1)
-            dependencies.append({"name": name, "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": name, 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
     
     @staticmethod
@@ -301,7 +477,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"implementation[(]['\"](.*?):(.*?)['\"]", content):
             group, name = match.groups()
-            dependencies.append({"name": f"{group}:{name}", "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": f"{group}:{name}", 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
 
     @staticmethod
@@ -310,7 +491,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"include ['\"](.*?)['\"]", content):
             name = match.group(1)
-            dependencies.append({"name": name, "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "MAVEN",
+                "name": name, 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
 
     @staticmethod
@@ -321,7 +507,12 @@ class DependencyExtractor:
             data = tomli.loads(content)
             deps = data.get("dependencies", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "RUST",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -335,7 +526,12 @@ class DependencyExtractor:
             for package in data.get("package", []):
                 name = package.get("name", "")
                 version = package.get("version", "")
-                dependencies.append({"name": name, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "RUST",
+                    "name": name, 
+                    "operator": "==", 
+                    "version": version
+                })
         except tomli.TomlDecodeError:
             pass
         return dependencies
@@ -348,7 +544,12 @@ class DependencyExtractor:
         for dep in root.findall(".//package"):
             name = dep.get("id")
             version = dep.get("version")
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -359,7 +560,12 @@ class DependencyExtractor:
             data = json.loads(content)
             deps = data.get("dependencies", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "NUGET",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -370,7 +576,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r'<PackageReference Include="(.+?)" Version="(.+?)"', content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
 
     @staticmethod
@@ -381,7 +592,12 @@ class DependencyExtractor:
         for dep in root.findall(".//dependency"):
             name = dep.get("id")
             version = dep.get("version")
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
 
     @staticmethod
@@ -394,7 +610,12 @@ class DependencyExtractor:
             for target in targets.values():
                 libs = target.get("libraries", {})
                 for lib, info in libs.items():
-                    dependencies.append({"name": lib, "operator": "==", "version": info.get("version", "")})
+                    dependencies.append({
+                        "ecosystem": "NUGET",
+                        "name": lib, 
+                        "operator": "==", 
+                        "version": info.get("version", "")
+                    })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -406,7 +627,12 @@ class DependencyExtractor:
         try:
             data = json.loads(content)
             for dep, info in data.get("dependencies", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": info.get("version", "")})
+                dependencies.append({
+                    "ecosystem": "NUGET",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": info.get("version", "")
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -417,7 +643,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"nuget\s+(.*?)\s+(.*?)\s+", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -426,7 +657,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"nuget\s+(.*?)\s+(.*?)\s+", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -435,7 +671,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"    (.*?)\s+(.*?)\s+", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "NUGET",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
 
     @staticmethod
@@ -450,7 +691,12 @@ class DependencyExtractor:
                 parts = line.split(" ")
                 if len(parts) == 3:
                     name, version = parts[1], parts[2]
-                    dependencies.append({"name": name, "operator": "==", "version": version})
+                    dependencies.append({
+                        "ecosystem": "GO",
+                        "name": name, 
+                        "operator": "==", 
+                        "version": version
+                    })
         return dependencies
 
     @staticmethod
@@ -461,7 +707,12 @@ class DependencyExtractor:
             parts = line.split(" ")
             if len(parts) >= 3:
                 name, version = parts[0], parts[1]
-                dependencies.append({"name": name, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "GO",
+                    "name": name, 
+                    "operator": "==", 
+                    "version": version
+                })
         return dependencies
     
     @staticmethod
@@ -470,7 +721,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"([a-zA-Z0-9/\-_]+)\s+([a-f0-9]+)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "GO",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -480,7 +736,12 @@ class DependencyExtractor:
         try:
             data = yaml.safe_load(content)
             for dep, version in data.get("import", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": version})
+                dependencies.append({
+                    "ecosystem": "GO",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": version
+                })
         except yaml.YAMLError:
             pass
         return dependencies
@@ -492,7 +753,12 @@ class DependencyExtractor:
         try:
             data = json.loads(content)
             for dep, info in data.get("dependencies", {}).items():
-                dependencies.append({"name": dep, "operator": "==", "version": info.get("version", "")})
+                dependencies.append({
+                    "ecosystem": "GO",
+                    "name": dep, 
+                    "operator": "==", 
+                    "version": info.get("version", "")
+                })
         except json.JSONDecodeError:
             pass
         return dependencies
@@ -503,7 +769,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"([a-zA-Z0-9/\-_]+)\s+([a-f0-9]+)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "GO",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -512,7 +783,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"([a-zA-Z0-9/\-_]+)\s+([a-f0-9]+)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "GO",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -521,7 +797,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"([a-zA-Z0-9/\-_]+)\s+([a-f0-9]+)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "GO",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
 
     @staticmethod
@@ -530,7 +811,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"find_package\((.*?)\)", content):
             name = match.group(1)
-            dependencies.append({"name": name, "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "None specific",
+                "name": name, 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
     
     @staticmethod
@@ -539,7 +825,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"([a-zA-Z0-9_-]+)\s*:", content):
             name = match.group(1)
-            dependencies.append({"name": name, "operator": "", "version": ""})
+            dependencies.append({
+                "ecosystem": "None specific",
+                "name": name, 
+                "operator": "", 
+                "version": ""
+            })
         return dependencies
     
     @staticmethod   
@@ -550,7 +841,12 @@ class DependencyExtractor:
             data = yaml.safe_load(content)
             deps = data.get("dependencies", {})
             for dep, version in deps.items():
-                dependencies.append({"name": dep, "operator": "", "version": version})
+                dependencies.append({
+                    "ecosystem": "PIP",
+                    "name": dep, 
+                    "operator": "", 
+                    "version": version
+                })
         except yaml.YAMLError:
             pass
         return dependencies
@@ -561,7 +857,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"pod ['\"](.+?)['\"],\s*['\"](.+?)['\"]", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "RUBYGEMS",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -570,7 +871,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"    - (.+?) \((.+?)\)", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "RUBYGEMS",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -579,7 +885,12 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"(.+?)\s*:\s*['\"](.+?)['\"]", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "None specific",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies
     
     @staticmethod
@@ -588,5 +899,10 @@ class DependencyExtractor:
         dependencies = []
         for match in re.finditer(r"binary ['\"](.+?)['\"]\s*['\"](.+?)['\"]", content):
             name, version = match.groups()
-            dependencies.append({"name": name, "operator": "==", "version": version})
+            dependencies.append({
+                "ecosystem": "None specific",
+                "name": name, 
+                "operator": "==", 
+                "version": version
+            })
         return dependencies

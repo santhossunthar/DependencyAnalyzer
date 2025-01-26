@@ -2,6 +2,7 @@ from api.github_api import GitHubAPI
 from utils.csv_writer import CSVWriter
 from services.repository_service import RepositoryService
 from services.dependency_service import DependencyService
+from services.vulnerability_service import VulnerabilityService
 from dotenv import load_dotenv
 import csv
 import sys
@@ -44,7 +45,8 @@ if __name__ == "__main__":
         headers = [
             "repo", 
             "url",
-            "source_file", 
+            "source_file",
+            "ecosystem",
             "name",
             "operator", 
             "version", 
@@ -65,5 +67,32 @@ if __name__ == "__main__":
             print(f"Dependency information successfully written to {dependency_csv}")
         except Exception as e:
             print(f"Error: {e}")
-
+    elif len(arguments) == 2 and arguments[1] == "-v":
+        dependencies_csv = "dependencies.csv"
+        vulnerabilities_csv = "vulnerabilities.csv"
+        headers = [
+            "repo", 
+            "ecosystem", 
+            "source_file", 
+            "name", 
+            "version", 
+            "severity", 
+            "advisory", 
+            "url"
+        ]
+        csv_writer = CSVWriter(vulnerabilities_csv, headers)
+        vulnerability_service = VulnerabilityService(github_api, csv_writer)
+        
+        try:
+            with open(dependencies_csv, mode="r", encoding="utf-8") as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    repo, ecosystem, source_file, name, version = row.get("repo"), \
+                        row.get("ecosystem"), row.get("source_file"), \
+                        row.get("name"), row.get("version")
+                    vulnerability_service.process(repo, ecosystem, source_file, name, version)
+                    break
+            print(f"Vulnerability information successfully written to {vulnerabilities_csv}")
+        except Exception as e:
+            print(f"Error: {e}")
         
