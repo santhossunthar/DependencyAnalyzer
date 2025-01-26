@@ -39,6 +39,7 @@ if __name__ == "__main__":
             print(f"Repository information successfully written to {repository_metadata_csv}")
         except Exception as e:
             print(f"Error: {e}")
+
     elif len(arguments) == 2 and arguments[1] == "-d":
         repository_metadata_csv = "repository_metadata.csv"
         dependency_csv = "dependencies.csv"
@@ -67,6 +68,7 @@ if __name__ == "__main__":
             print(f"Dependency information successfully written to {dependency_csv}")
         except Exception as e:
             print(f"Error: {e}")
+
     elif len(arguments) == 2 and arguments[1] == "-v":
         dependencies_csv = "dependencies.csv"
         vulnerabilities_csv = "vulnerabilities.csv"
@@ -95,4 +97,3 @@ if __name__ == "__main__":
             print(f"Vulnerability information successfully written to {vulnerabilities_csv}")
         except Exception as e:
             print(f"Error: {e}")
-        
